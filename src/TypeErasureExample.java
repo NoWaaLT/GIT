@@ -6,7 +6,7 @@ public class TypeErasureExample {
 
     void someMethod(T parameter) {
       System.out.println(parameter);
-    }W
+    }
 
 //  void someMethod(Object parameter) {                                 // This is not allowed because we have specified the type of what Generic type became at runtime.
 //    System.out.println(parameter);
