@@ -1,0 +1,249 @@
+Look. I have a problem. I need to make program with spring boot, hibernate + jpa + queryDSL. I need to make project of three restaurant (cheap, medium and elite). Each of these restaurants have their own menu, own recipes. Progarm if necesery should have mysql database. I don't know how to do further. For now, i have package controller, model, repository, service. In controller package there is ProductController, in mode Product and Restaurant, in repository i have inMemoryProductDAO, in service i have ProductService interface and impl package for implementation , ProductServiceImpl. What to do next? How much tables in database i need? How to should classes comunicates? Main think that later, i will receive an order from web page and order will contain a dish. User wil specify in which restaurant he want to order dish and program will scan menu in specified restaurant, found a dish and gives back price.
+
+Based on your description, you will need at least three tables in your database: `Restaurant`, `Product` (or `Menu`), and `Order`. 
+
+1. `Restaurant` table will store information about each restaurant. 
+2. `Product` (or `Menu`) table will store information about each dish, including which restaurant it belongs to.
+3. `Order` table will store information about each order, including which restaurant the order is for and what dishes are in the order.
+
+Here's a basic outline of how the classes might communicate:
+
+- `Restaurant` class: This will be an entity class that maps to the `Restaurant` table in your database. It will have fields for the restaurant's id, name, and type (cheap, medium, elite). It will also have a one-to-many relationship with the `Product` class.
+
+- `Product` class: This will be an entity class that maps to the `Product` (or `Menu`) table in your database. It will have fields for the dish's id, name, and price. It will also have a many-to-one relationship with the `Restaurant` class and a many-to-many relationship with the `Order` class.
+
+- `Order` class: This will be an entity class that maps to the `Order` table in your database. It will have fields for the order's id and total price. It will also have a many-to-many relationship with the `Product` class.
+
+- `ProductController` class: This will be a controller class that handles HTTP requests related to dishes. It will use the `ProductService` to perform operations related to dishes.
+
+- `ProductService` interface and `ProductServiceImpl` class: These will define and implement the business logic for operations related to dishes. They will use the `ProductRepository` to interact with the database.
+
+- `ProductRepository` interface: This will be a repository interface that provides methods for querying the `Product` table in your database. It will extend a Spring Data JPA repository interface (like `JpaRepository` or `CrudRepository`).
+
+You will also need to create similar controller, service, and repository classes for the `Restaurant` and `Order` entities.
+
+Here's an example of how you might define the `Restaurant`, `Product`, and `Order` entities:
+
+```java
+@Entity
+public class Restaurant {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String name;
+    private String type;
+
+    @OneToMany(mappedBy = "restaurant")
+    private List<Product> products;
+}
+
+@Entity
+public class Product {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String name;
+    private float price;
+
+    @ManyToOne
+    @JoinColumn(name = "restaurant_id")
+    private Restaurant restaurant;
+
+    @ManyToMany(mappedBy = "products")
+    private List<Order> orders;
+}
+
+@Entity
+public class Order {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private float totalPrice;
+
+    @ManyToMany
+    @JoinTable(
+        name = "order_product",
+        joinColumns = @JoinColumn(name = "order_id"),
+        inverseJoinColumns = @JoinColumn(name = "product_id")
+    )
+    private List<Product> products;
+}
+```
+
+Please note that this is a basic design and might need to be adjusted based on your specific requirements and business rules.
+
+But it also will have products remains inside. Also i need to store recipes, to know how much of products i need to prepare a dish.
+
+Based on your requirements, you might need to add a few more tables to your database:
+
+1. `Product`: This table will store information about each product, including its name and remaining quantity.
+
+2. `Recipe`: This table will store information about each recipe, including its name.
+
+3. `RecipeProduct`: This table will store the relationship between recipes and products. Each row will represent a product used in a recipe and the quantity of that product required for the recipe.
+
+Here's how you might define these entities:
+
+```java
+@Entity
+public class Product {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String name;
+    private int quantity;
+
+    @ManyToOne
+    @JoinColumn(name = "restaurant_id")
+    private Restaurant restaurant;
+}
+
+@Entity
+public class Recipe {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String name;
+
+    @ManyToOne
+    @JoinColumn(name = "restaurant_id")
+    private Restaurant restaurant;
+
+    @OneToMany(mappedBy = "recipe")
+    private List<RecipeProduct> recipeProducts;
+}
+
+@Entity
+public class RecipeProduct {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne
+    @JoinColumn(name = "recipe_id")
+    private Recipe recipe;
+
+    @ManyToOne
+    @JoinColumn(name = "product_id")
+    private Product product;
+
+    private int quantity;
+}
+```
+
+In this design:
+
+- Each `Product` is associated with one `Restaurant`.
+- Each `Recipe` is associated with one `Restaurant` and can have many `RecipeProduct`s.
+- Each `RecipeProduct` is associated with one `Recipe` and one `Product`, and stores the quantity of the product required for the recipe.
+
+This design allows you to store the quantity of each product remaining in each restaurant, as well as the quantity of each product required for each recipe. You can then use this information to determine whether you have enough of each product to prepare a dish.
+
+Based on your requirements, you might need to add a few more tables to your database:
+
+1. `Product`: This table will store information about each product, including its name and remaining quantity.
+
+2. `Recipe`: This table will store information about each recipe, including its name.
+
+3. `RecipeProduct`: This table will store the relationship between recipes and products. Each row will represent a product used in a recipe and the quantity of that product required for the recipe.
+
+Here's how you might define these entities:
+
+```java
+@Entity
+public class Product {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String name;
+    private int quantity;
+
+    @ManyToOne
+    @JoinColumn(name = "restaurant_id")
+    private Restaurant restaurant;
+}
+
+@Entity
+public class Recipe {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    private String name;
+
+    @ManyToOne
+    @JoinColumn(name = "restaurant_id")
+    private Restaurant restaurant;
+
+    @OneToMany(mappedBy = "recipe")
+    private List<RecipeProduct> recipeProducts;
+}
+
+@Entity
+public class RecipeProduct {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne
+    @JoinColumn(name = "recipe_id")
+    private Recipe recipe;
+
+    @ManyToOne
+    @JoinColumn(name = "product_id")
+    private Product product;
+
+    private int quantity;
+}
+```
+
+In this design:
+
+- Each `Product` is associated with one `Restaurant`.
+- Each `Recipe` is associated with one `Restaurant` and can have many `RecipeProduct`s.
+- Each `RecipeProduct` is associated with one `Recipe` and one `Product`, and stores the quantity of the product required for the recipe.
+
+This design allows you to store the quantity of each product remaining in each restaurant, as well as the quantity of each product required for each recipe. You can then use this information to determine whether you have enough of each product to prepare a dish.
+
+How to know which of my classes need to have a controller, service and repository?
+
+In a typical Spring Boot application, you would create a Controller, Service, and Repository for each entity that you want to expose over the web API and persist in the database. 
+
+1. **Controller**: This is the entry point for your web API. If you want to perform CRUD operations on an entity via HTTP requests, you should create a controller for that entity.
+
+2. **Service**: This is where you implement your business logic. If an entity has associated business rules or complex operations, you should create a service for that entity.
+
+3. **Repository**: This is how you interact with the database. If you want to persist an entity in the database, you should create a repository for that entity.
+
+In your case, you have `Product` and `Restaurant` entities. If you want to perform CRUD operations on these entities via a web API and persist them in a database, you should create a Controller, Service, and Repository for each of them.
+
+However, if an entity is only used as a part of another entity and doesn't need its own web API or direct database access, you might not need to create a Controller, Service, or Repository for it. For example, if you have an `OrderItem` entity that is always accessed as part of an `Order` and doesn't have its own business rules, you might decide not to create a separate Controller, Service, or Repository for `OrderItem`. Instead, you would handle `OrderItem` as part of the `Order`'s Controller, Service, and Repository.
+
+Based on my program what we talked before, Which of my tables need to have controller , service and repository?
+
+
+Based on your program and the previous discussion, you should have a Controller, Service, and Repository for the following entities:
+
+1. `Restaurant`: This entity represents a restaurant in your application. You will need to perform operations like creating a new restaurant, retrieving existing restaurants, updating a restaurant's details, and deleting a restaurant.
+
+2. `Product`: This entity represents a product or dish in your application. You will need to perform operations like creating a new product, retrieving existing products, updating a product's details, and deleting a product.
+
+3. `Order`: This entity represents an order in your application. You will need to perform operations like creating a new order, retrieving existing orders, updating an order's details, and deleting an order.
+
+4. `Recipe`: This entity represents a recipe in your application. You will need to perform operations like creating a new recipe, retrieving existing recipes, updating a recipe's details, and deleting a recipe.
+
+So, you should create a Controller, Service, and Repository for each of these entities. Each Controller will handle HTTP requests related to its entity, each Service will implement business logic related to its entity, and each Repository will provide methods for querying its entity's table in the database.
+
+
+Explain me please those annotation like manytomany,  one to many and etc. And when i need to use them in myproject?
+
+In JPA (Java Persistence API), annotations like `@OneToMany`, `@ManyToOne`, `@ManyToMany`, and `@OneToOne` are used to define relationships between entities. These relationships correspond to the relationships between tables in a relational database.
+
+1. `@OneToMany`: This annotation is used to specify a one-to-many relationship between two entities. A one-to-many relationship occurs when a single record in Entity A can be associated with multiple records in Entity B. But a record in Entity B can be associated with only one record in Entity A. For example, in your project, a `Restaurant` can have many `Product`s, but each `Product` belongs to one `Restaurant`.
+
+2. `@ManyToOne`: This annotation is used to specify a many-to-one relationship between two entities. A many-to-one relationship occurs when multiple records in Entity A can be associated with a single record in Entity B. But a record in Entity B can be associated with multiple records in Entity A. It's the opposite of `@OneToMany`. In your project, it's used in the `Product` entity to refer back to the `Restaurant` entity.
+
+3. `@ManyToMany`: This annotation is used to specify a many-to-many relationship between two entities. A many-to-many relationship occurs when multiple records in Entity A can be associated with multiple records in Entity B and vice versa. For example, in your project, a `Product` can be part of many `Order`s, and an `Order` can contain many `Product`s.
+
+4. `@OneToOne`: This annotation is used to specify a one-to-one relationship between two entities. A one-to-one relationship occurs when a single record in Entity A can be associated with a single record in Entity B and vice versa. This is not used in your current project based on the information provided.
+
+In your project, you would use these annotations in your entity classes to define the relationships between your `Restaurant`, `Product`, `Order`, and `Recipe` entities. For example, you might use `@OneToMany` in your `Restaurant` entity to indicate that a restaurant can have many products, and `@ManyToOne` in your `Product` entity to indicate that each product belongs to one restaurant. Similarly, you might use `@ManyToMany` to indicate that an order can contain many products and a product can be part of many orders.
